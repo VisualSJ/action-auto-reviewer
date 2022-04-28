@@ -13,6 +13,7 @@ export async function run() {
 
     const prNumber = payload.pull_request.number;
     const pullRequestBody = payload.pull_request.body || '';
+    const user = payload.pull_request.user.login;
 
     const matchStr = pullRequestBody.match(/<!-- Record Reviewer -->((.|\r|\n|\r\n)*)<!-- End Reviewer -->/);
     if (!matchStr || !matchStr[1]) {
@@ -31,10 +32,40 @@ export async function run() {
 
     const client = getOctokit(token);
 
+    const reviewsParam = {
+        ...context.repo,
+        pull_number: prNumber,
+    };
+    const reviewsResponse = await client.pulls.listReviews(reviewsParam);
+
+    const reviews = new Map();
+    reviewsResponse.data.forEach(review => {
+        if (review.user) {
+            reviews.set(review.user.login, review.state);
+        }
+    });
+
+    const userRemovedReviewers = reviewers.filter(reviewer => reviewer != user);
+    const finalReviewers = [];
+    userRemovedReviewers.forEach(reviewer => {
+        const rev = reviews.get(reviewer);
+        if (rev == null) {
+            finalReviewers.push(reviewer);
+        } else {
+            if (rev == 'CHANGES_REQUESTED') {
+                info(`Changes Requested: Not requesting re-review from ${reviewer}`);
+            } else if (rev == 'APPROVED') {
+                info(`Approved: Not requesting re-review from ${reviewer}`);
+            } else {
+                finalReviewers.push(reviewer);
+            }
+        }
+    });
+
     const params = {
         ...context.repo,
         pull_number: prNumber,
-        reviewers: reviewers,
+        reviewers: userRemovedReviewers,
     };
     await client.pulls.requestReviewers(params);
 }

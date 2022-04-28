@@ -21,6 +21,7 @@ function run() {
         }
         const prNumber = payload.pull_request.number;
         const pullRequestBody = payload.pull_request.body || '';
+        const user = payload.pull_request.user.login;
         const matchStr = pullRequestBody.match(/<!-- Record Reviewer -->((.|\r|\n|\r\n)*)<!-- End Reviewer -->/);
         if (!matchStr || !matchStr[1]) {
             (0, core_1.info)('No Reviewer found');
@@ -35,7 +36,34 @@ function run() {
             }
         });
         const client = (0, github_1.getOctokit)(token);
-        const params = Object.assign(Object.assign({}, github_1.context.repo), { pull_number: prNumber, reviewers: reviewers });
+        const reviewsParam = Object.assign(Object.assign({}, github_1.context.repo), { pull_number: prNumber });
+        const reviewsResponse = yield client.pulls.listReviews(reviewsParam);
+        const reviews = new Map();
+        reviewsResponse.data.forEach(review => {
+            if (review.user) {
+                reviews.set(review.user.login, review.state);
+            }
+        });
+        const userRemovedReviewers = reviewers.filter(reviewer => reviewer != user);
+        const finalReviewers = [];
+        userRemovedReviewers.forEach(reviewer => {
+            const rev = reviews.get(reviewer);
+            if (rev == null) {
+                finalReviewers.push(reviewer);
+            }
+            else {
+                if (rev == 'CHANGES_REQUESTED') {
+                    (0, core_1.info)(`Changes Requested: Not requesting re-review from ${reviewer}`);
+                }
+                else if (rev == 'APPROVED') {
+                    (0, core_1.info)(`Approved: Not requesting re-review from ${reviewer}`);
+                }
+                else {
+                    finalReviewers.push(reviewer);
+                }
+            }
+        });
+        const params = Object.assign(Object.assign({}, github_1.context.repo), { pull_number: prNumber, reviewers: userRemovedReviewers });
         yield client.pulls.requestReviewers(params);
     });
 }
