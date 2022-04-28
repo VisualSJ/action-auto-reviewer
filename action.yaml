@@ -1,0 +1,10 @@
+name: 'auto-reviewer'
+description: 'A reviewer will be automatically added according to the PR content'
+inputs:
+  token:
+    description: 'Token of the current visitor'
+    required: true
+    default: ''
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
