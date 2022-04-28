@@ -1,11 +1,10 @@
 'use strict';
 
 import { getInput, info } from '@actions/core';
-import github from '@actions/github';
+import { context, getOctokit } from '@actions/github';
 
 export async function run() {
     const token = getInput('token');
-    const context = github.context;
     const payload = context.payload;
 
     if (!payload.pull_request) {
@@ -30,7 +29,7 @@ export async function run() {
         }
     });
 
-    const client = github.getOctokit(token);
+    const client = getOctokit(token);
 
     const params = {
         ...context.repo,

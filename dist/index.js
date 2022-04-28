@@ -8,18 +8,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.run = void 0;
 const core_1 = require("@actions/core");
-const github_1 = __importDefault(require("@actions/github"));
+const github_1 = require("@actions/github");
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         const token = (0, core_1.getInput)('token');
-        const context = github_1.default.context;
-        const payload = context.payload;
+        const payload = github_1.context.payload;
         if (!payload.pull_request) {
             return;
         }
@@ -38,8 +34,8 @@ function run() {
                 reviewers.push(str.substr(1));
             }
         });
-        const client = github_1.default.getOctokit(token);
-        const params = Object.assign(Object.assign({}, context.repo), { pull_number: prNumber, reviewers: reviewers });
+        const client = (0, github_1.getOctokit)(token);
+        const params = Object.assign(Object.assign({}, github_1.context.repo), { pull_number: prNumber, reviewers: reviewers });
         yield client.pulls.requestReviewers(params);
     });
 }
