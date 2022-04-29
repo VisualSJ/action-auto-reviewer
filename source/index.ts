@@ -14,6 +14,13 @@ export async function run() {
     const prNumber = payload.pull_request.number;
     const pullRequestBody = payload.pull_request.body || '';
     const user = payload.pull_request.user.login;
+    const debug = (getInput('debug') === 'true');
+
+    const event = context.eventName;
+    if (event != 'pull_request') {
+        info(`Event: ${event}`);
+        return;
+    }
 
     const matchStr = pullRequestBody.match(/<!-- Record Reviewer -->((.|\r|\n|\r\n)*)<!-- End Reviewer -->/);
     if (!matchStr || !matchStr[1]) {
@@ -29,6 +36,10 @@ export async function run() {
             reviewers.push(str.substr(1));
         }
     });
+
+    if (debug) {
+        info(`Input reviewers: ${reviewers}`);
+    }
 
     const client = getOctokit(token);
 
@@ -67,6 +78,10 @@ export async function run() {
         pull_number: prNumber,
         reviewers: userRemovedReviewers,
     };
+    if (debug) {
+        info(`Request params:`);
+        info(JSON.stringify(params, null, 2));
+    }
     await client.pulls.requestReviewers(params);
 }
 

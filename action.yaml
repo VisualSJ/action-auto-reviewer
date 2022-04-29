@@ -5,6 +5,9 @@ inputs:
     description: 'Token of the current visitor'
     required: true
     default: ''
+  debug:
+    description: 'Debug mode'
+    default: 'false'
 runs:
   using: 'node12'
   main: 'dist/index.js'
